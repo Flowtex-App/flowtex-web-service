@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: flowtex-web-service
+    env: docker
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 8080
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://flowtex.netlify.app,http://localhost:5173

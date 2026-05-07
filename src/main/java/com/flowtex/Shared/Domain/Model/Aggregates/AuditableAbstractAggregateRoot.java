@@ -1,0 +1,32 @@
+package com.flowtex.Shared.Domain.Model.Aggregates;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.MappedSuperclass;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+public abstract class AuditableAbstractAggregateRoot<T extends AuditableAbstractAggregateRoot<T>> implements Serializable {
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+}

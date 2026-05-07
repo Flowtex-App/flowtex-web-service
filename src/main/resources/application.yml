@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: flowtex-web-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/flowtex?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+
+flowtex:
+  cors:
+    origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:4173}
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-in-production-use-a-strong-secret-of-at-least-256-bits-please}
+      expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+      issuer: flowtex
+  ai:
+    provider: ${AI_PROVIDER:groq}
+    groq:
+      api-url: ${GROQ_API_URL:https://api.groq.com/openai/v1/chat/completions}
+      api-key: ${GROQ_API_KEY:}
+      model: ${GROQ_MODEL:llama-3.1-8b-instant}
+    gemini:
+      api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-1.5-flash}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN
+    com.flowtex: INFO
