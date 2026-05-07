@@ -11,6 +11,7 @@ public record FormResource(
         String status,
         int version,
         Long ownerId,
+        Long workflowId,
         List<FormFieldResource> fields,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

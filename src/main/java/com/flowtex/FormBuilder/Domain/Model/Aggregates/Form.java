@@ -35,6 +35,9 @@ public class Form extends AuditableAbstractAggregateRoot<Form> {
     @Column(name = "owner_id", nullable = false)
     private Long ownerId;
 
+    @Column(name = "workflow_id")
+    private Long workflowId;
+
     @OneToMany(mappedBy = "form", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("position ASC")
     private List<FormField> fields = new ArrayList<>();
@@ -56,6 +59,10 @@ public class Form extends AuditableAbstractAggregateRoot<Form> {
         this.description = description;
         this.context = context;
         this.version += 1;
+    }
+
+    public void linkWorkflow(Long workflowId) {
+        this.workflowId = workflowId;
     }
 
     public void replaceFields(List<FormField> newFields) {
@@ -84,5 +91,6 @@ public class Form extends AuditableAbstractAggregateRoot<Form> {
     public FormStatus getStatus() { return status; }
     public int getVersion() { return version; }
     public Long getOwnerId() { return ownerId; }
+    public Long getWorkflowId() { return workflowId; }
     public List<FormField> getFields() { return fields; }
 }

@@ -22,6 +22,7 @@ public class FormResourceFromEntityAssembler {
                 form.getStatus().name(),
                 form.getVersion(),
                 form.getOwnerId(),
+                form.getWorkflowId(),
                 fields,
                 form.getCreatedAt(),
                 form.getUpdatedAt());

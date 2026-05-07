@@ -1,6 +1,7 @@
 package com.flowtex.FormBuilder.Domain.Model.ValueObjects;
 
 public enum FieldType {
+    // Inputs
     TEXT,
     TEXTAREA,
     NUMBER,
@@ -14,5 +15,11 @@ public enum FieldType {
     FILE,
     URL,
     PHONE,
-    SIGNATURE
+    SIGNATURE,
+
+    // Layout / display (no input data captured)
+    HEADING,
+    PARAGRAPH,
+    DIVIDER,
+    SECTION
 }
