@@ -9,6 +9,7 @@ public record FormFieldResource(
         String placeholder,
         String helpText,
         int position,
+        int width,
         String options
 ) {
 }

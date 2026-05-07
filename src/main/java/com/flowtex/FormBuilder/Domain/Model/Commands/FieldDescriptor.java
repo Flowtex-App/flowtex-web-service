@@ -10,6 +10,7 @@ public record FieldDescriptor(
         String placeholder,
         String helpText,
         int position,
+        int width,
         String options
 ) {
 }

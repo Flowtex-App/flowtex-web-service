@@ -38,6 +38,9 @@ public class FormField {
     @Column(name = "position", nullable = false)
     private int position;
 
+    @Column(name = "width", nullable = false)
+    private int width = 12;
+
     @Column(columnDefinition = "TEXT")
     private String options;
 
@@ -45,7 +48,7 @@ public class FormField {
     }
 
     public FormField(String label, String fieldKey, FieldType fieldType, boolean required,
-                     String placeholder, String helpText, int position, String options) {
+                     String placeholder, String helpText, int position, int width, String options) {
         this.label = label;
         this.fieldKey = fieldKey;
         this.fieldType = fieldType;
@@ -53,6 +56,7 @@ public class FormField {
         this.placeholder = placeholder;
         this.helpText = helpText;
         this.position = position;
+        this.width = clampWidth(width);
         this.options = options;
     }
 
@@ -61,7 +65,7 @@ public class FormField {
     }
 
     public void update(String label, String fieldKey, FieldType fieldType, boolean required,
-                       String placeholder, String helpText, int position, String options) {
+                       String placeholder, String helpText, int position, int width, String options) {
         this.label = label;
         this.fieldKey = fieldKey;
         this.fieldType = fieldType;
@@ -69,7 +73,14 @@ public class FormField {
         this.placeholder = placeholder;
         this.helpText = helpText;
         this.position = position;
+        this.width = clampWidth(width);
         this.options = options;
+    }
+
+    private static int clampWidth(int w) {
+        if (w < 1) return 1;
+        if (w > 12) return 12;
+        return w;
     }
 
     public Long getId() { return id; }
@@ -81,5 +92,6 @@ public class FormField {
     public String getPlaceholder() { return placeholder; }
     public String getHelpText() { return helpText; }
     public int getPosition() { return position; }
+    public int getWidth() { return width; }
     public String getOptions() { return options; }
 }

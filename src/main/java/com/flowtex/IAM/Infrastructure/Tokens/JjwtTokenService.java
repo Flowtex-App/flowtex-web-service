@@ -3,7 +3,6 @@ package com.flowtex.IAM.Infrastructure.Tokens;
 import com.flowtex.IAM.Application.Internal.OutboundServices.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -52,11 +51,11 @@ public class JjwtTokenService implements TokenService {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuer(issuer)
-                .setIssuedAt(now)
-                .setExpiration(expiration)
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .subject(username)
+                .issuer(issuer)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -68,7 +67,7 @@ public class JjwtTokenService implements TokenService {
     @Override
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token);
             return true;
         } catch (Exception ex) {
             LOGGER.debug("Invalid JWT: {}", ex.getMessage());
@@ -77,7 +76,11 @@ public class JjwtTokenService implements TokenService {
     }
 
     private <T> T resolveClaim(String token, Function<Claims, T> resolver) {
-        Claims claims = Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token).getBody();
+        Claims claims = Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
         return resolver.apply(claims);
     }
 }

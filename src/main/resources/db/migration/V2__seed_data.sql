@@ -1,5 +1,5 @@
 -- Seed data for FLOWTEX. Passwords are BCrypt hashes of "Flowtex2026!"
--- BCrypt hash generated with strength 10: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+-- BCrypt hash generated with strength 10: $2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny
 
 INSERT INTO roles (id, name) VALUES
     (1, 'ROLE_ADMIN'),
@@ -8,12 +8,12 @@ INSERT INTO roles (id, name) VALUES
     (4, 'ROLE_USER');
 
 INSERT INTO users (id, username, email, full_name, password_hash, created_at) VALUES
-    (1, 'gmora',     'gabriel.mora@claro.com.pe',      'Gabriel Mora',         '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:00:00'),
-    (2, 'mtongo',    'milagros.tongo@hitss.com',       'Milagros Tongo',       '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:05:00'),
-    (3, 'clecca',    'christopher.lecca@hitss.com',    'Christopher Lecca',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:10:00'),
-    (4, 'mames',     'mariano.ames@hitss.com',         'Mariano Ames',         '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:15:00'),
-    (5, 'asosa',     'angello.sosa@hitss.com',         'Angello Sosa',         '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:20:00'),
-    (6, 'demo',      'demo@flowtex.app',               'Demo User',            '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '2026-04-01 09:25:00');
+    (1, 'gmora',     'gabriel.mora@claro.com.pe',      'Gabriel Mora',         '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:00:00'),
+    (2, 'mtongo',    'milagros.tongo@hitss.com',       'Milagros Tongo',       '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:05:00'),
+    (3, 'clecca',    'christopher.lecca@hitss.com',    'Christopher Lecca',    '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:10:00'),
+    (4, 'mames',     'mariano.ames@hitss.com',         'Mariano Ames',         '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:15:00'),
+    (5, 'asosa',     'angello.sosa@hitss.com',         'Angello Sosa',         '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:20:00'),
+    (6, 'demo',      'demo@flowtex.app',               'Demo User',            '$2a$10$kVCsRcxSP19vb77IDRUnL.vBy/c1l/C0LmOXZaw/YvwnnH8LZDMny', '2026-04-01 09:25:00');
 
 INSERT INTO user_roles (user_id, role_id) VALUES
     (1, 1), (1, 2),
