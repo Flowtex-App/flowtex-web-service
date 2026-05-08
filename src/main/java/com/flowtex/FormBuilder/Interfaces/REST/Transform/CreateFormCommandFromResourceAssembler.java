@@ -42,6 +42,9 @@ public class CreateFormCommandFromResourceAssembler {
                         r.helpText(),
                         r.position() != null ? r.position() : 0,
                         r.width() != null ? Math.max(1, Math.min(12, r.width())) : 12,
+                        r.colStart(),
+                        r.rowStart(),
+                        r.rowSpan() != null ? Math.max(1, r.rowSpan()) : 1,
                         r.options()))
                 .toList();
     }

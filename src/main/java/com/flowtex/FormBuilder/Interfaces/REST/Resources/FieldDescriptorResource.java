@@ -14,6 +14,9 @@ public record FieldDescriptorResource(
         String helpText,
         @NotNull Integer position,
         @Min(1) @Max(12) Integer width,
+        @Min(1) @Max(12) Integer colStart,
+        @Min(1) Integer rowStart,
+        @Min(1) Integer rowSpan,
         String options
 ) {
 }

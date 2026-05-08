@@ -21,5 +21,12 @@ public enum FieldType {
     HEADING,
     PARAGRAPH,
     DIVIDER,
-    SECTION
+    SECTION,
+    SPACER,
+
+    // Auto-filled from current user metadata at render/submit time
+    AUTO_USER_NAME,
+    AUTO_EMPLOYEE_CODE,
+    AUTO_POSITION,
+    AUTO_AREA
 }

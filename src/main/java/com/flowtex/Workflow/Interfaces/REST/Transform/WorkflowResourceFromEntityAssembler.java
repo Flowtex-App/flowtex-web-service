@@ -2,9 +2,11 @@ package com.flowtex.Workflow.Interfaces.REST.Transform;
 
 import com.flowtex.Workflow.Domain.Model.Aggregates.Workflow;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStep;
+import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepApprover;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepSection;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepTransition;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowResource;
+import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepApproverResource;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepResource;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepSectionResource;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepTransitionResource;
@@ -39,6 +41,9 @@ public final class WorkflowResourceFromEntityAssembler {
         List<WorkflowStepTransitionResource> transitions = s.getOrderedTransitions().stream()
                 .map(WorkflowResourceFromEntityAssembler::toTransitionResource)
                 .collect(Collectors.toList());
+        List<WorkflowStepApproverResource> approvers = s.getOrderedApprovers().stream()
+                .map(WorkflowResourceFromEntityAssembler::toApproverResource)
+                .collect(Collectors.toList());
         return new WorkflowStepResource(
                 s.getId(),
                 s.getPosition(),
@@ -51,7 +56,8 @@ public final class WorkflowResourceFromEntityAssembler {
                 s.getCanvasY(),
                 s.getColor(),
                 sections,
-                transitions
+                transitions,
+                approvers
         );
     }
 
@@ -77,6 +83,18 @@ public final class WorkflowResourceFromEntityAssembler {
                 t.getConfig(),
                 t.getSourceHandle(),
                 t.getTargetHandle()
+        );
+    }
+
+    private static WorkflowStepApproverResource toApproverResource(WorkflowStepApprover a) {
+        return new WorkflowStepApproverResource(
+                a.getId(),
+                a.getPosition(),
+                a.getKind().name(),
+                a.getUserId(),
+                a.getArea(),
+                a.getUserPosition(),
+                a.getRole()
         );
     }
 }

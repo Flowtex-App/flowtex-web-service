@@ -4,8 +4,10 @@ import com.flowtex.IAM.Domain.Model.Aggregates.User;
 import com.flowtex.IAM.Domain.Repositories.UserRepository;
 import com.flowtex.Workflow.Domain.Model.Aggregates.Workflow;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStep;
+import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepApprover;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepSection;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepTransition;
+import com.flowtex.Workflow.Domain.Model.ValueObjects.ApproverKind;
 import com.flowtex.Workflow.Domain.Model.ValueObjects.SectionKind;
 import com.flowtex.Workflow.Domain.Model.ValueObjects.StepMode;
 import com.flowtex.Workflow.Domain.Model.ValueObjects.TransitionCondition;
@@ -138,6 +140,19 @@ public class WorkflowsController {
                 }
             }
             step.replaceSections(sections);
+
+            // Approvers
+            List<WorkflowStepApprover> approvers = new ArrayList<>();
+            if (sb.approvers() != null) {
+                int aIdx = 0;
+                for (SaveWorkflowResource.SaveApproverResource ab : sb.approvers()) {
+                    ApproverKind kind = parseEnum(ab.kind(), ApproverKind.ROLE);
+                    approvers.add(new WorkflowStepApprover(
+                            aIdx++, kind, ab.userId(), ab.area(), ab.userPosition(), ab.role()
+                    ));
+                }
+            }
+            step.replaceApprovers(approvers);
 
             steps.add(step);
             if (sb.tempId() != null) byRef.put(sb.tempId(), step);

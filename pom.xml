@@ -15,7 +15,7 @@
     <artifactId>flowtex-web-service</artifactId>
     <version>0.1.0</version>
     <name>flowtex-web-service</name>
-    <description>FLOWTEX backend - FormBuilder, FlowEngine, MigraFlow</description>
+    <description>FLOWTEX backend - FormBuilder y FlowEngine</description>
 
     <properties>
         <java.version>21</java.version>

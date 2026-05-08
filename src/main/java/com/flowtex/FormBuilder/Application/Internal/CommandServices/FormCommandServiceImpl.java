@@ -61,7 +61,8 @@ public class FormCommandServiceImpl implements FormCommandService {
         return descriptors.stream()
                 .map(d -> new FormField(
                         d.label(), d.fieldKey(), d.fieldType(), d.required(),
-                        d.placeholder(), d.helpText(), d.position(), d.width(), d.options()))
+                        d.placeholder(), d.helpText(), d.position(), d.width(),
+                        d.colStart(), d.rowStart(), d.rowSpan(), d.options()))
                 .toList();
     }
 }

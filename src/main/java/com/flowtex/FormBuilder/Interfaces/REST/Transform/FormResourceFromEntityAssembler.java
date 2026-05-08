@@ -39,6 +39,9 @@ public class FormResourceFromEntityAssembler {
                 field.getHelpText(),
                 field.getPosition(),
                 field.getWidth(),
+                field.getColStart(),
+                field.getRowStart(),
+                field.getRowSpan(),
                 field.getOptions());
     }
 }
