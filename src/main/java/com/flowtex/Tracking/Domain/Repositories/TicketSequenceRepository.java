@@ -10,8 +10,8 @@ import java.time.Year;
  * Genera códigos de ticket secuenciales sin colisiones.
  * Formato: FTX-2026-00001 (FTX, año actual, padded).
  *
- * Implementación atómica: UPDATE last_value = last_value + 1 dentro de una
- * transacción separada (REQUIRES_NEW), luego SELECT del valor.
+ * Los nombres de columna evitan keywords contextuales de TiDB (la versión
+ * Serverless rechaza `name` y `last_value` en CREATE TABLE).
  */
 @Repository
 public class TicketSequenceRepository {
@@ -24,9 +24,11 @@ public class TicketSequenceRepository {
 
     @Transactional
     public String nextTicketCode() {
-        em.createNativeQuery("UPDATE ticket_sequence SET last_value = last_value + 1 WHERE name = 'FTX'")
+        em.createNativeQuery(
+                "UPDATE ticket_sequence SET seq_value = seq_value + 1 WHERE seq_name = 'FTX'")
                 .executeUpdate();
-        Number value = (Number) em.createNativeQuery("SELECT last_value FROM ticket_sequence WHERE name = 'FTX'")
+        Number value = (Number) em.createNativeQuery(
+                "SELECT seq_value FROM ticket_sequence WHERE seq_name = 'FTX'")
                 .getSingleResult();
         long n = value.longValue();
         return String.format("FTX-%d-%05d", Year.now().getValue(), n);
