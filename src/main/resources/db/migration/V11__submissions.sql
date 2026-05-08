@@ -1,8 +1,13 @@
 -- V11: bounded context Tracking — submissions, step executions y audit log.
 -- Una submission "congela" el form y el workflow al momento del envío
 -- (snapshots JSON), de modo que cambios futuros no afectan a las ya en curso.
+--
+-- IF NOT EXISTS y los nombres de columna sin colisión con keywords de TiDB
+-- (last_value es función de ventana en TiDB; name suele dar parsing-edge cases)
+-- garantizan que esta migración sea idempotente: si una corrida previa falló
+-- a mitad de camino y dejó tablas a medias, la siguiente corrida no rompe.
 
-CREATE TABLE submissions (
+CREATE TABLE IF NOT EXISTS submissions (
     id                  BIGINT        NOT NULL AUTO_INCREMENT,
     ticket_code         VARCHAR(20)   NOT NULL UNIQUE,
     form_id             BIGINT        NOT NULL,
@@ -21,13 +26,12 @@ CREATE TABLE submissions (
     CONSTRAINT fk_submissions_submitter FOREIGN KEY (submitter_id) REFERENCES users(id)
 );
 
-CREATE INDEX idx_submissions_submitter ON submissions(submitter_id);
-CREATE INDEX idx_submissions_status    ON submissions(status);
-CREATE INDEX idx_submissions_form      ON submissions(form_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_submitter ON submissions(submitter_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_status    ON submissions(status);
+CREATE INDEX IF NOT EXISTS idx_submissions_form      ON submissions(form_id);
 
 -- Una fila por step ejecutado (o por ejecutar) en una submission.
--- Registra a quién se asignó, cuándo entró en cola, cuándo se decidió.
-CREATE TABLE submission_step_executions (
+CREATE TABLE IF NOT EXISTS submission_step_executions (
     id                  BIGINT        NOT NULL AUTO_INCREMENT,
     submission_id       BIGINT        NOT NULL,
     step_ref            VARCHAR(80)   NOT NULL,
@@ -52,14 +56,12 @@ CREATE TABLE submission_step_executions (
     CONSTRAINT fk_sse_decided    FOREIGN KEY (decided_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_sse_submission     ON submission_step_executions(submission_id);
-CREATE INDEX idx_sse_assigned_user  ON submission_step_executions(assigned_user_id);
-CREATE INDEX idx_sse_status         ON submission_step_executions(status);
+CREATE INDEX IF NOT EXISTS idx_sse_submission     ON submission_step_executions(submission_id);
+CREATE INDEX IF NOT EXISTS idx_sse_assigned_user  ON submission_step_executions(assigned_user_id);
+CREATE INDEX IF NOT EXISTS idx_sse_status         ON submission_step_executions(status);
 
 -- Log inmutable de eventos sobre la submission (audit trail).
--- Soporta cambios de campo (con valor anterior y nuevo legibles), decisiones,
--- comentarios y eventos del workflow.
-CREATE TABLE submission_audit_events (
+CREATE TABLE IF NOT EXISTS submission_audit_events (
     id              BIGINT        NOT NULL AUTO_INCREMENT,
     submission_id   BIGINT        NOT NULL,
     event_type      VARCHAR(40)   NOT NULL,
@@ -71,20 +73,23 @@ CREATE TABLE submission_audit_events (
     new_value       TEXT          NULL,
     description     VARCHAR(500)  NULL,
     data_json       TEXT          NULL,
-    timestamp       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `timestamp`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     CONSTRAINT fk_sae_submission FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE,
     CONSTRAINT fk_sae_actor      FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_sae_submission ON submission_audit_events(submission_id);
-CREATE INDEX idx_sae_timestamp  ON submission_audit_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_sae_submission ON submission_audit_events(submission_id);
+CREATE INDEX IF NOT EXISTS idx_sae_timestamp  ON submission_audit_events(`timestamp`);
 
--- Pequeña secuencia para tickets (TiDB no tiene SEQUENCE pero un INSERT/UPDATE
--- atómico con FOR UPDATE sirve para el caudal académico).
-CREATE TABLE ticket_sequence (
-    name VARCHAR(40) NOT NULL,
-    last_value BIGINT NOT NULL DEFAULT 0,
-    PRIMARY KEY (name)
+-- Secuencia de tickets. Renombramos las columnas para evitar colisiones con
+-- keywords contextuales de TiDB (`name` y `last_value` rompen el parser de
+-- la versión Serverless actual).
+CREATE TABLE IF NOT EXISTS ticket_sequence (
+    seq_name   VARCHAR(40) NOT NULL,
+    seq_value  BIGINT      NOT NULL DEFAULT 0,
+    PRIMARY KEY (seq_name)
 );
-INSERT INTO ticket_sequence (name, last_value) VALUES ('FTX', 0);
+
+INSERT INTO ticket_sequence (seq_name, seq_value) VALUES ('FTX', 0)
+    ON DUPLICATE KEY UPDATE seq_value = seq_value;
