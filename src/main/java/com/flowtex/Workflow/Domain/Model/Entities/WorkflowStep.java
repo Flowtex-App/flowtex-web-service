@@ -55,6 +55,9 @@ public class WorkflowStep {
     @OneToMany(mappedBy = "fromStep", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<WorkflowStepTransition> outgoingTransitions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "step", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<WorkflowStepApprover> approvers = new ArrayList<>();
+
     public WorkflowStep() {}
 
     public WorkflowStep(int position, String label, String role, int slaHours, StepMode mode, String description,
@@ -99,6 +102,20 @@ public class WorkflowStep {
             t.attachFrom(this);
             this.outgoingTransitions.add(t);
         }
+    }
+
+    public void replaceApprovers(List<WorkflowStepApprover> next) {
+        this.approvers.clear();
+        for (WorkflowStepApprover a : next) {
+            a.attachToStep(this);
+            this.approvers.add(a);
+        }
+    }
+
+    public List<WorkflowStepApprover> getOrderedApprovers() {
+        List<WorkflowStepApprover> copy = new ArrayList<>(approvers);
+        copy.sort(Comparator.comparingInt(WorkflowStepApprover::getPosition));
+        return copy;
     }
 
     public Long getId() { return id; }

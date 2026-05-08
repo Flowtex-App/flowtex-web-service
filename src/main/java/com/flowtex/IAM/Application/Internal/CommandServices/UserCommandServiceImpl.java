@@ -5,6 +5,7 @@ import com.flowtex.IAM.Application.Internal.OutboundServices.TokenService;
 import com.flowtex.IAM.Domain.Model.Aggregates.User;
 import com.flowtex.IAM.Domain.Model.Commands.SignInCommand;
 import com.flowtex.IAM.Domain.Model.Commands.SignUpCommand;
+import com.flowtex.IAM.Domain.Model.Commands.UpdateUserRolesCommand;
 import com.flowtex.IAM.Domain.Model.Entities.Role;
 import com.flowtex.IAM.Domain.Model.ValueObjects.Roles;
 import com.flowtex.IAM.Domain.Repositories.RoleRepository;
@@ -42,6 +43,9 @@ public class UserCommandServiceImpl implements UserCommandService {
         if (userRepository.existsByEmail(command.email())) {
             throw new IllegalArgumentException("Email already in use: " + command.email());
         }
+        if (userRepository.existsByEmployeeCode(command.employeeCode())) {
+            throw new IllegalArgumentException("Employee code already in use: " + command.employeeCode());
+        }
 
         List<Roles> requestedRoles = command.roles() == null || command.roles().isEmpty()
                 ? List.of(Roles.ROLE_USER)
@@ -56,9 +60,31 @@ public class UserCommandServiceImpl implements UserCommandService {
                 command.username(),
                 command.email(),
                 command.fullName(),
-                hashingService.encode(command.password()));
+                hashingService.encode(command.password()),
+                command.employeeCode(),
+                command.position(),
+                command.positionSpecialty(),
+                command.area());
         user.addRoles(roleEntities);
 
+        return Optional.of(userRepository.save(user));
+    }
+
+    @Override
+    public Optional<User> handle(UpdateUserRolesCommand command) {
+        User user = userRepository.findById(command.userId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + command.userId()));
+
+        List<Roles> requested = command.roles() == null || command.roles().isEmpty()
+                ? List.of(Roles.ROLE_USER)
+                : command.roles();
+
+        List<Role> roleEntities = requested.stream()
+                .map(roleName -> roleRepository.findByName(roleName)
+                        .orElseGet(() -> roleRepository.save(new Role(roleName))))
+                .toList();
+
+        user.replaceRoles(roleEntities);
         return Optional.of(userRepository.save(user));
     }
 

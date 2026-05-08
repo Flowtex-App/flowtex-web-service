@@ -20,7 +20,8 @@ public record SaveWorkflowResource(
             int canvasY,
             String color,
             List<SaveSectionResource> sections,
-            List<SaveTransitionResource> transitions
+            List<SaveTransitionResource> transitions,
+            List<SaveApproverResource> approvers
     ) {}
 
     public record SaveSectionResource(
@@ -41,5 +42,15 @@ public record SaveWorkflowResource(
             String config,
             String sourceHandle,
             String targetHandle
+    ) {}
+
+    public record SaveApproverResource(
+            Long id,
+            int position,
+            String kind,
+            Long userId,
+            String area,
+            String userPosition,
+            String role
     ) {}
 }

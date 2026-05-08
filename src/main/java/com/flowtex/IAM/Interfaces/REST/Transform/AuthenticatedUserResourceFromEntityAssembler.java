@@ -12,6 +12,12 @@ public class AuthenticatedUserResourceFromEntityAssembler {
                 user.getUsername(),
                 user.getEmail(),
                 user.getFullName(),
+                user.getEmployeeCode(),
+                user.getPosition() != null ? user.getPosition().name() : null,
+                user.getPosition() != null ? user.getPosition().getLabel() : null,
+                user.getPositionSpecialty(),
+                user.getArea() != null ? user.getArea().name() : null,
+                user.getArea() != null ? user.getArea().getLabel() : null,
                 user.getRoleNames(),
                 token);
     }
@@ -22,6 +28,12 @@ public class AuthenticatedUserResourceFromEntityAssembler {
                 user.getUsername(),
                 user.getEmail(),
                 user.getFullName(),
+                user.getEmployeeCode(),
+                user.getPosition() != null ? user.getPosition().name() : null,
+                user.getPosition() != null ? user.getPosition().getLabel() : null,
+                user.getPositionSpecialty(),
+                user.getArea() != null ? user.getArea().name() : null,
+                user.getArea() != null ? user.getArea().getLabel() : null,
                 user.getRoleNames());
     }
 }

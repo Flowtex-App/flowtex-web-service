@@ -14,6 +14,7 @@ public record WorkflowStepResource(
         int canvasY,
         String color,
         List<WorkflowStepSectionResource> sections,
-        List<WorkflowStepTransitionResource> transitions
+        List<WorkflowStepTransitionResource> transitions,
+        List<WorkflowStepApproverResource> approvers
 ) {
 }

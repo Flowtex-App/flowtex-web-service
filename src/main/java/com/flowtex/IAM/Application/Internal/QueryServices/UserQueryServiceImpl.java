@@ -1,6 +1,8 @@
 package com.flowtex.IAM.Application.Internal.QueryServices;
 
 import com.flowtex.IAM.Domain.Model.Aggregates.User;
+import com.flowtex.IAM.Domain.Model.ValueObjects.Area;
+import com.flowtex.IAM.Domain.Model.ValueObjects.Position;
 import com.flowtex.IAM.Domain.Repositories.UserRepository;
 import com.flowtex.IAM.Domain.Services.UserQueryService;
 import org.springframework.stereotype.Service;
@@ -34,5 +36,30 @@ public class UserQueryServiceImpl implements UserQueryService {
     @Transactional(readOnly = true)
     public Optional<User> getByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<User> getByEmployeeCode(String employeeCode) {
+        return userRepository.findByEmployeeCode(employeeCode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> searchByText(String query) {
+        if (query == null || query.isBlank()) return userRepository.findAll();
+        return userRepository.searchByText(query.trim());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> getByArea(Area area) {
+        return userRepository.findByArea(area);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> getByAreaAndPosition(Area area, Position position) {
+        return userRepository.findByAreaAndPosition(area, position);
     }
 }

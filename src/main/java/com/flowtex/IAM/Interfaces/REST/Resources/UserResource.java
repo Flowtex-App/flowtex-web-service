@@ -7,6 +7,12 @@ public record UserResource(
         String username,
         String email,
         String fullName,
+        String employeeCode,
+        String position,
+        String positionLabel,
+        String positionSpecialty,
+        String area,
+        String areaLabel,
         List<String> roles
 ) {
 }

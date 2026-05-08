@@ -11,6 +11,9 @@ public record FieldDescriptor(
         String helpText,
         int position,
         int width,
+        Integer colStart,
+        Integer rowStart,
+        int rowSpan,
         String options
 ) {
 }
