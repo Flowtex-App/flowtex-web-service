@@ -23,6 +23,7 @@ public enum FieldType {
     DIVIDER,
     SECTION,
     SPACER,
+    IMAGE,
 
     // Auto-filled from current user metadata at render/submit time
     AUTO_USER_NAME,
