@@ -27,6 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/workflows")
@@ -42,16 +46,19 @@ public class WorkflowsController {
 
     @GetMapping
     public List<WorkflowResource> list() {
-        return workflowRepository.findAll().stream()
+        List<Workflow> all = workflowRepository.findAll().stream()
                 .sorted(Comparator.comparing(Workflow::getId))
-                .map(WorkflowResourceFromEntityAssembler::toResource)
+                .toList();
+        Map<Long, User> usersById = loadApproverUsers(all);
+        return all.stream()
+                .map(w -> WorkflowResourceFromEntityAssembler.toResource(w, usersById))
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<WorkflowResource> get(@PathVariable Long id) {
         return workflowRepository.findById(id)
-                .map(WorkflowResourceFromEntityAssembler::toResource)
+                .map(this::toResourceWithUsers)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -66,7 +73,7 @@ public class WorkflowsController {
         Workflow w = new Workflow(body.name(), body.description(), owner);
         applySteps(w, body.steps());
         Workflow saved = workflowRepository.save(w);
-        return ResponseEntity.ok(WorkflowResourceFromEntityAssembler.toResource(saved));
+        return ResponseEntity.ok(toResourceWithUsers(saved));
     }
 
     @PutMapping("/{id}")
@@ -80,7 +87,7 @@ public class WorkflowsController {
         w.update(body.name(), body.description());
         applySteps(w, body.steps());
         Workflow saved = workflowRepository.save(w);
-        return ResponseEntity.ok(WorkflowResourceFromEntityAssembler.toResource(saved));
+        return ResponseEntity.ok(toResourceWithUsers(saved));
     }
 
     @PostMapping("/{id}/publish")
@@ -89,7 +96,7 @@ public class WorkflowsController {
         Workflow w = workflowRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("workflow not found"));
         w.publish();
-        return ResponseEntity.ok(WorkflowResourceFromEntityAssembler.toResource(workflowRepository.save(w)));
+        return ResponseEntity.ok(toResourceWithUsers(workflowRepository.save(w)));
     }
 
     @DeleteMapping("/{id}")
@@ -101,6 +108,22 @@ public class WorkflowsController {
     }
 
     // ──────────────────────────────────────────────────────────────────────
+
+    private WorkflowResource toResourceWithUsers(Workflow w) {
+        return WorkflowResourceFromEntityAssembler.toResource(w, loadApproverUsers(List.of(w)));
+    }
+
+    private Map<Long, User> loadApproverUsers(List<Workflow> workflows) {
+        Set<Long> userIds = workflows.stream()
+                .flatMap(w -> w.getOrderedSteps().stream())
+                .flatMap(s -> s.getOrderedApprovers().stream())
+                .map(WorkflowStepApprover::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (userIds.isEmpty()) return Map.of();
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+    }
 
     /**
      * Persist the steps + sections + transitions defined in the payload.

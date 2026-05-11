@@ -7,6 +7,8 @@ public record WorkflowStepApproverResource(
         Long userId,
         String area,
         String userPosition,
-        String role
+        String role,
+        String userLabel,
+        String userEmployeeCode
 ) {
 }

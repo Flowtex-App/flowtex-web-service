@@ -1,5 +1,6 @@
 package com.flowtex.Workflow.Interfaces.REST.Transform;
 
+import com.flowtex.IAM.Domain.Model.Aggregates.User;
 import com.flowtex.Workflow.Domain.Model.Aggregates.Workflow;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStep;
 import com.flowtex.Workflow.Domain.Model.Entities.WorkflowStepApprover;
@@ -11,7 +12,9 @@ import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepResource;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepSectionResource;
 import com.flowtex.Workflow.Interfaces.REST.Resources.WorkflowStepTransitionResource;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class WorkflowResourceFromEntityAssembler {
@@ -19,8 +22,12 @@ public final class WorkflowResourceFromEntityAssembler {
     private WorkflowResourceFromEntityAssembler() {}
 
     public static WorkflowResource toResource(Workflow w) {
+        return toResource(w, Collections.emptyMap());
+    }
+
+    public static WorkflowResource toResource(Workflow w, Map<Long, User> usersById) {
         List<WorkflowStepResource> steps = w.getOrderedSteps().stream()
-                .map(WorkflowResourceFromEntityAssembler::toStepResource)
+                .map(s -> toStepResource(s, usersById))
                 .collect(Collectors.toList());
         return new WorkflowResource(
                 w.getId(),
@@ -34,7 +41,7 @@ public final class WorkflowResourceFromEntityAssembler {
         );
     }
 
-    private static WorkflowStepResource toStepResource(WorkflowStep s) {
+    private static WorkflowStepResource toStepResource(WorkflowStep s, Map<Long, User> usersById) {
         List<WorkflowStepSectionResource> sections = s.getOrderedSections().stream()
                 .map(WorkflowResourceFromEntityAssembler::toSectionResource)
                 .collect(Collectors.toList());
@@ -42,7 +49,7 @@ public final class WorkflowResourceFromEntityAssembler {
                 .map(WorkflowResourceFromEntityAssembler::toTransitionResource)
                 .collect(Collectors.toList());
         List<WorkflowStepApproverResource> approvers = s.getOrderedApprovers().stream()
-                .map(WorkflowResourceFromEntityAssembler::toApproverResource)
+                .map(a -> toApproverResource(a, usersById))
                 .collect(Collectors.toList());
         return new WorkflowStepResource(
                 s.getId(),
@@ -86,7 +93,8 @@ public final class WorkflowResourceFromEntityAssembler {
         );
     }
 
-    private static WorkflowStepApproverResource toApproverResource(WorkflowStepApprover a) {
+    private static WorkflowStepApproverResource toApproverResource(WorkflowStepApprover a, Map<Long, User> usersById) {
+        User u = a.getUserId() != null ? usersById.get(a.getUserId()) : null;
         return new WorkflowStepApproverResource(
                 a.getId(),
                 a.getPosition(),
@@ -94,7 +102,9 @@ public final class WorkflowResourceFromEntityAssembler {
                 a.getUserId(),
                 a.getArea(),
                 a.getUserPosition(),
-                a.getRole()
+                a.getRole(),
+                u != null ? u.getFullName() : null,
+                u != null ? u.getEmployeeCode() : null
         );
     }
 }
