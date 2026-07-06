@@ -12,8 +12,10 @@ import com.flowtex.Tracking.Domain.Model.Entities.SubmissionStepExecution;
 import com.flowtex.Tracking.Domain.Model.ValueObjects.AssignmentKind;
 import com.flowtex.Tracking.Domain.Model.ValueObjects.AuditEventType;
 import com.flowtex.Tracking.Domain.Model.ValueObjects.Decision;
+import com.flowtex.Tracking.Domain.Model.ValueObjects.StepExecutionStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -128,10 +130,134 @@ public class WorkflowEngine {
         enqueueStep(submission, next, actorLabel);
     }
 
+    /**
+     * Aplica la decisión de un aprobador considerando el MODO del paso:
+     *   - SEQUENTIAL: cada aprobador en orden; todos deben aprobar.
+     *   - PARALLEL: todos a la vez; todos deben aprobar; un rechazo lo cierra.
+     *   - MAJORITY: basta la mayoría de aprobaciones.
+     * Solo cuando el paso queda resuelto se evalúan las transiciones (advanceAfter).
+     * El exec `current` ya viene con su decisión registrada.
+     */
+    public void onDecision(Submission submission, SubmissionStepExecution current,
+                           Decision decision, String actorLabel) {
+        if (submission.getWorkflowSnapshot() == null) {
+            advanceAfter(submission, current, decision, actorLabel);
+            return;
+        }
+        WorkflowSnapshot snap = parseWorkflow(submission.getWorkflowSnapshot());
+        StepSnapshot step = snap.steps.stream()
+                .filter(s -> Objects.equals(s.ref, current.getStepRef()))
+                .findFirst().orElse(null);
+        if (step == null) {
+            advanceAfter(submission, current, decision, actorLabel);
+            return;
+        }
+
+        // RETURN cierra el paso y devuelve al solicitante en cualquier modo.
+        if (decision == Decision.RETURN) {
+            skipOpenSiblings(submission, current);
+            advanceAfter(submission, current, Decision.RETURN, actorLabel);
+            return;
+        }
+
+        String mode = normalizeMode(step.mode);
+        int total = resolveApprovers(step).size();
+        List<SubmissionStepExecution> execs = stepExecs(submission, current.getStepRef());
+        long approved = execs.stream().filter(e -> e.getDecision() == Decision.APPROVE).count();
+        long rejected = execs.stream().filter(e -> e.getDecision() == Decision.REJECT).count();
+
+        switch (mode) {
+            case "PARALLEL" -> {
+                if (decision == Decision.REJECT) {
+                    skipOpenSiblings(submission, current);
+                    advanceAfter(submission, current, Decision.REJECT, actorLabel);
+                } else if (approved >= total) {
+                    advanceAfter(submission, current, Decision.APPROVE, actorLabel);
+                } else {
+                    submission.appendAudit(stepAudit(actorLabel,
+                            "Paso \"" + step.label + "\": " + approved + " de " + total
+                            + " aprobaciones. Esperando a los demás aprobadores."));
+                }
+            }
+            case "MAJORITY" -> {
+                int majority = total / 2 + 1;
+                if (approved >= majority) {
+                    skipOpenSiblings(submission, current);
+                    advanceAfter(submission, current, Decision.APPROVE, actorLabel);
+                } else if (rejected > total - majority) {
+                    skipOpenSiblings(submission, current);
+                    advanceAfter(submission, current, Decision.REJECT, actorLabel);
+                } else {
+                    submission.appendAudit(stepAudit(actorLabel,
+                            "Paso \"" + step.label + "\": " + approved + " aprobaciones (se necesita mayoría: "
+                            + majority + " de " + total + ")."));
+                }
+            }
+            default -> { // SEQUENTIAL
+                if (decision == Decision.REJECT) {
+                    advanceAfter(submission, current, Decision.REJECT, actorLabel);
+                } else if (execs.size() < total) {
+                    ApproverResolution next = resolveApprovers(step).get(execs.size());
+                    createExec(submission, step, next);
+                    submission.appendAudit(stepAudit(actorLabel,
+                            "Paso \"" + step.label + "\": aprobado (" + approved + " de " + total
+                            + "). En cola el siguiente aprobador: " + next.describe() + "."));
+                } else {
+                    advanceAfter(submission, current, Decision.APPROVE, actorLabel);
+                }
+            }
+        }
+    }
+
+    private List<SubmissionStepExecution> stepExecs(Submission submission, String stepRef) {
+        return submission.getOrderedExecutions().stream()
+                .filter(e -> Objects.equals(e.getStepRef(), stepRef))
+                .toList();
+    }
+
+    private void skipOpenSiblings(Submission submission, SubmissionStepExecution current) {
+        for (SubmissionStepExecution e : stepExecs(submission, current.getStepRef())) {
+            if (e != current
+                    && (e.getStatus() == StepExecutionStatus.PENDING
+                        || e.getStatus() == StepExecutionStatus.IN_PROGRESS)) {
+                e.markSkipped();
+            }
+        }
+    }
+
+    private static String normalizeMode(String mode) {
+        if (mode == null) return "SEQUENTIAL";
+        String m = mode.trim().toUpperCase();
+        return (m.equals("PARALLEL") || m.equals("MAJORITY")) ? m : "SEQUENTIAL";
+    }
+
     // ─── pasos privados ─────────────────────────────────────────────────
 
     private void enqueueStep(Submission submission, StepSnapshot step, String actorLabel) {
-        ApproverResolution res = resolveApprover(step);
+        List<ApproverResolution> approvers = resolveApprovers(step);
+        String mode = normalizeMode(step.mode);
+        submission.setCurrentStepRef(step.ref);
+        submission.markInProgress();
+
+        if ("SEQUENTIAL".equals(mode) || approvers.size() <= 1) {
+            // Un aprobador activo a la vez; los demás se encolan al ir aprobando.
+            createExec(submission, step, approvers.get(0));
+            submission.appendAudit(stepAudit(actorLabel,
+                    "Paso \"" + step.label + "\" en cola — asignado a " + approvers.get(0).describe()
+                    + (approvers.size() > 1 ? " (secuencial, 1 de " + approvers.size() + ")." : ".")));
+        } else {
+            // PARALLEL / MAJORITY: todos los aprobadores en cola a la vez.
+            for (ApproverResolution res : approvers) {
+                createExec(submission, step, res);
+            }
+            String modeLabel = "PARALLEL".equals(mode) ? "todos en paralelo" : "por mayoría";
+            submission.appendAudit(stepAudit(actorLabel,
+                    "Paso \"" + step.label + "\" en cola — " + approvers.size()
+                    + " aprobadores (" + modeLabel + ")."));
+        }
+    }
+
+    private void createExec(Submission submission, StepSnapshot step, ApproverResolution res) {
         SubmissionStepExecution exec = new SubmissionStepExecution(
                 step.ref, step.label, step.position,
                 res.kind,
@@ -139,12 +265,12 @@ public class WorkflowEngine {
                 res.area, res.userPosition, res.role
         );
         submission.appendStepExecution(exec);
-        submission.setCurrentStepRef(step.ref);
-        submission.markInProgress();
-        submission.appendAudit(new SubmissionAuditEvent(
+    }
+
+    private SubmissionAuditEvent stepAudit(String actorLabel, String description) {
+        return new SubmissionAuditEvent(
                 AuditEventType.STEP_ASSIGNED, null, actorLabel,
-                null, null, null, null,
-                "Paso \"" + step.label + "\" en cola — asignado a " + res.describe() + ".", null));
+                null, null, null, null, description, null);
     }
 
     private void finalizeBy(Submission submission, Decision decision, String actorLabel) {
@@ -223,31 +349,43 @@ public class WorkflowEngine {
         try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0; }
     }
 
-    private ApproverResolution resolveApprover(StepSnapshot step) {
-        if (step.approvers != null && !step.approvers.isEmpty()) {
-            ApproverSnapshot first = step.approvers.get(0);
-            switch (first.kind) {
-                case "USER":
-                    if (first.userId != null) {
-                        Optional<User> u = userRepository.findById(first.userId);
-                        return new ApproverResolution(
-                                AssignmentKind.USER,
-                                first.userId,
-                                u.map(User::getFullName).orElse(first.userLabel),
-                                null, null, null);
-                    }
-                    break;
-                case "AREA_POSITION":
-                    return new ApproverResolution(
-                            AssignmentKind.AREA_POSITION, null, null,
-                            first.area, first.userPosition, null);
-                case "ROLE":
-                    return new ApproverResolution(
-                            AssignmentKind.ROLE, null, null, null, null, first.role);
+    private List<ApproverResolution> resolveApprovers(StepSnapshot step) {
+        List<ApproverResolution> out = new ArrayList<>();
+        if (step.approvers != null) {
+            for (ApproverSnapshot a : step.approvers) {
+                ApproverResolution r = toResolution(a);
+                if (r != null) out.add(r);
             }
         }
-        // Fallback: rol legacy del step
-        return new ApproverResolution(AssignmentKind.ROLE, null, null, null, null, step.role);
+        if (out.isEmpty()) {
+            // Fallback: rol legacy del step
+            out.add(new ApproverResolution(AssignmentKind.ROLE, null, null, null, null, step.role));
+        }
+        return out;
+    }
+
+    private ApproverResolution toResolution(ApproverSnapshot a) {
+        switch (a.kind == null ? "" : a.kind) {
+            case "USER":
+                if (a.userId != null) {
+                    Optional<User> u = userRepository.findById(a.userId);
+                    return new ApproverResolution(
+                            AssignmentKind.USER,
+                            a.userId,
+                            u.map(User::getFullName).orElse(a.userLabel),
+                            null, null, null);
+                }
+                return null;
+            case "AREA_POSITION":
+                return new ApproverResolution(
+                        AssignmentKind.AREA_POSITION, null, null,
+                        a.area, a.userPosition, null);
+            case "ROLE":
+                return new ApproverResolution(
+                        AssignmentKind.ROLE, null, null, null, null, a.role);
+            default:
+                return null;
+        }
     }
 
     // ─── parsing helpers ────────────────────────────────────────────────

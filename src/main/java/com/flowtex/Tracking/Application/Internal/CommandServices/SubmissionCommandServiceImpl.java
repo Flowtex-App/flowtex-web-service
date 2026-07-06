@@ -165,7 +165,7 @@ public class SubmissionCommandServiceImpl implements SubmissionCommandService {
                             ? " — " + command.comments() : ""),
                 null));
 
-        engine.advanceAfter(submission, exec, command.decision(), actor.getFullName());
+        engine.onDecision(submission, exec, command.decision(), actor.getFullName());
         return Optional.of(submissionRepository.save(submission));
     }
 
